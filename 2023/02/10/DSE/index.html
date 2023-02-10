@@ -16,22 +16,22 @@
   <meta name="author" content="Zhiyang Liu">
   <meta name="keywords" content="">
   
-    <meta name="description" content="This is a test article. From today, I am going to maintain blogs about my work done on LLVM.">
+    <meta name="description" content="Today let’s work on a new guest, DSE, or Dead Store Elimination. Pass DescriptionQuick lookName : Dead Store Elimination Pass Arg Name : dse Pass Class Name: DSELegacyPass Pass Arguments: None Pass Ty">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Let&#39;s get started">
-<meta property="og:url" content="http://example.com/2023/02/09/Lets-Start-Here/index.html">
+<meta property="og:title" content="DSE">
+<meta property="og:url" content="http://example.com/2023/02/10/DSE/index.html">
 <meta property="og:site_name" content="knavelazy">
-<meta property="og:description" content="This is a test article. From today, I am going to maintain blogs about my work done on LLVM.">
+<meta property="og:description" content="Today let’s work on a new guest, DSE, or Dead Store Elimination. Pass DescriptionQuick lookName : Dead Store Elimination Pass Arg Name : dse Pass Class Name: DSELegacyPass Pass Arguments: None Pass Ty">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2023-02-09T15:37:02.000Z">
-<meta property="article:modified_time" content="2023-02-09T15:59:07.197Z">
+<meta property="article:published_time" content="2023-02-10T07:10:44.000Z">
+<meta property="article:modified_time" content="2023-02-10T08:42:25.935Z">
 <meta property="article:author" content="Zhiyang Liu">
 <meta property="article:tag" content="LLVM">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Let&#39;s get started - knavelazy</title>
+  <title>DSE - knavelazy</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -197,7 +197,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Let&#39;s get started"></span>
+            <span id="subtitle" data-typed-text="DSE"></span>
           
         </div>
 
@@ -208,8 +208,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2023-02-09 16:37" pubdate>
-          February 9, 2023 pm
+        <time datetime="2023-02-10 08:10" pubdate>
+          February 10, 2023 am
         </time>
       </span>
     
@@ -220,7 +220,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          74 words
+          1.6k words
         
       </span>
     
@@ -231,7 +231,7 @@
         
         
         
-          1 mins
+          13 mins
         
       </span>
     
@@ -269,14 +269,30 @@
         <div id="board">
           <article class="post-content mx-auto">
             <!-- SEO header -->
-            <h1 style="display: none">Let&#39;s get started</h1>
+            <h1 style="display: none">DSE</h1>
             
             
               <div class="markdown-body">
                 
-                <p>This is a test article.</p>
-<p>From today, I am going to maintain blogs about my work done on LLVM.</p>
+                <p>Today let’s work on a new guest, <code>DSE</code>, or Dead Store Elimination.</p>
+<h1 id="Pass-Description"><a href="#Pass-Description" class="headerlink" title="Pass Description"></a>Pass Description</h1><h2 id="Quick-look"><a href="#Quick-look" class="headerlink" title="Quick look"></a>Quick look</h2><p>Name : Dead Store Elimination</p>
+<p>Pass Arg Name : <code>dse</code></p>
+<p>Pass Class Name: <code>DSELegacyPass</code></p>
+<p>Pass Arguments: None</p>
+<p>Pass Type: <code>FunctionPass</code></p>
+<p>Actual Working Level: Directly on functions</p>
+<h2 id="Algorithm"><a href="#Algorithm" class="headerlink" title="Algorithm"></a>Algorithm</h2><p>As the name indicates, DSE removes stores that are dead using MemorySSA.<br>Generally speaking, the algorithm is:</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs stylus"><span class="hljs-function"><span class="hljs-title">for</span><span class="hljs-params">(each Killer in MemDefs)</span></span><br>    ToCheck<span class="hljs-selector-class">.insert</span>()<br>    <span class="hljs-built_in">for</span>(each Victim <span class="hljs-keyword">in</span> ToCheck)<br>        Dead = <span class="hljs-built_in">getDomMemoryDef</span>(Killer, Victim)<br>        <span class="hljs-built_in">if</span>(isMemTerm &amp; Killer<span class="hljs-selector-class">.Obj</span> = Dead.Obj)<br>            Kill Dead<br>        <span class="hljs-keyword">else</span><br>            OR = <span class="hljs-built_in">isOverwrite</span>(Killer, Dead)<br>            Kill Dead depending on OR<br></code></pre></td></tr></table></figure>
 
+<h1 id="Atomics-Out-of-Door"><a href="#Atomics-Out-of-Door" class="headerlink" title="Atomics Out of Door"></a>Atomics Out of Door</h1><p>Consider this piece of code:</p>
+<figure class="highlight llvm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs llvm"><span class="hljs-symbol">std:</span>:<span class="hljs-keyword">atomic</span>&lt;int&gt; <span class="hljs-keyword">x</span><span class="hljs-punctuation">,</span> y<span class="hljs-comment">;</span><br>int a<span class="hljs-punctuation">,</span> b<span class="hljs-punctuation">,</span> <span class="hljs-keyword">c</span><span class="hljs-punctuation">,</span> d<span class="hljs-punctuation">,</span> e<span class="hljs-punctuation">,</span> f<span class="hljs-comment">;</span><br>int main()&#123;<br>    <span class="hljs-keyword">x</span> <span class="hljs-operator">=</span> <span class="hljs-number">1</span><span class="hljs-comment">; </span><br>    b <span class="hljs-operator">=</span> <span class="hljs-keyword">x</span><span class="hljs-comment">;  //raw</span><br>    <span class="hljs-keyword">x</span> <span class="hljs-operator">=</span> <span class="hljs-number">2</span><span class="hljs-comment">;  //ow</span><br>    <span class="hljs-keyword">c</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">x</span><span class="hljs-comment">;  //raw</span><br>    d <span class="hljs-operator">=</span> y<span class="hljs-comment">;</span><br>    e <span class="hljs-operator">=</span> <span class="hljs-keyword">x</span><span class="hljs-comment">;  //ditto</span><br>    f <span class="hljs-operator">=</span> y<span class="hljs-comment">;  //rar</span><br>&#125;<br></code></pre></td></tr></table></figure>
+<p>The first <code>x = 1</code> is dead after <code>EarlyCSE</code> replaces <code>b = x</code> with <code>b = 1</code>. Then <code>DSE</code> should be able to remove it.</p>
+<p>But, <code>clang++ HW.cpp -O3 -mllvm -print-after-all</code>, you will find nothing changed after <code>*** IR Dump After DSEPass on main ***</code>.</p>
+<p>One of the reason is, when looking for a <code>MemDef</code> using <code>getDomMemoryDef</code>. Atomics will be skipped:</p>
+<figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs scss"><span class="hljs-built_in">getDomMemoryDef</span>(...)&#123;<br>    ...<br>    if (isDSEBarrier(KillingUndObj, CurrentI)) &#123;<br>          <span class="hljs-built_in">LLVM_DEBUG</span>(dbgs() &lt;&lt; &quot;  ... skip, barrier\n&quot;);<br>          return <span class="hljs-attribute">None</span>;<br>    &#125;<br>    ...<br>&#125;<br>...<br>bool <span class="hljs-built_in">isDSEBarrier</span>(const Value *KillingUndObj, Instruction *DeadI) &#123;<br>    ...<br>    if (DeadI-&gt;isAtomic()) &#123;<br>      if (auto *LI = dyn_cast&lt;LoadInst&gt;(DeadI))<br>        return <span class="hljs-built_in">isStrongerThanMonotonic</span>(LI-&gt;getOrdering());<br>      ...<br>    &#125;<br>    ...<br>  &#125;<br><br></code></pre></td></tr></table></figure>
+<p>Any atomic access with a memory order stronger than <code>monotonic</code>, which is equivalent to <code>relaxed</code> in C&#x2F;C++, will be deemed as a “barrier” and skipped. </p>
+<p>After refining the condition, however, atomics still cannot be treated.</p>
+<h1 id="OnGoing…"><a href="#OnGoing…" class="headerlink" title="OnGoing…"></a>OnGoing…</h1>
                 
               </div>
             
@@ -296,6 +312,13 @@
         
   <a href="/categories/Thesis-Project/" class="category-chain-item">Thesis Project</a>
   
+  
+    <span>></span>
+    
+  <a href="/categories/Thesis-Project/LLVM-Transform-Pass/" class="category-chain-item">LLVM Transform Pass</a>
+  
+  
+
   
 
       </span>
@@ -321,8 +344,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Let&#39;s get started</div>
-      <div>http://example.com/2023/02/09/Lets-Start-Here/</div>
+      <div>DSE</div>
+      <div>http://example.com/2023/02/10/DSE/</div>
     </div>
     <div class="license-meta">
       
@@ -334,7 +357,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>Posted on</div>
-          <div>February 9, 2023</div>
+          <div>February 10, 2023</div>
         </div>
       
       
@@ -366,15 +389,15 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2023/02/10/DSE/" title="DSE">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">DSE</span>
-                        <span class="visible-mobile">Previous</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2023/02/09/Lets-Start-Here/" title="Let&#39;s get started">
+                        <span class="hidden-mobile">Let&#39;s get started</span>
+                        <span class="visible-mobile">Next</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>
